@@ -77,6 +77,6 @@ vim.api.nvim_create_autocmd('FileType', {
 -- Don't autocomplete in prompts and telescope-style inputs.
 vim.api.nvim_create_autocmd('FileType', {
   group = augroup('no_autocomplete'),
-  pattern = { 'oil', 'gitcommit', 'markdown', 'text' },
+  pattern = { 'neo-tree', 'gitcommit', 'markdown', 'text' },
   callback = function() vim.bo.autocomplete = false end,
 })

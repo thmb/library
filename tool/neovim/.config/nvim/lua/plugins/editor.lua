@@ -26,7 +26,7 @@ return {
     lazy = false,
     priority = 900,
     config = function()
-      -- Icons first: oil and fzf-lua both pick this up.
+      -- Icons first: neo-tree and fzf-lua both pick this up.
       require('mini.icons').setup()
       MiniIcons.mock_nvim_web_devicons()
 
@@ -145,24 +145,29 @@ return {
     end,
   },
 
-  -- Files as a buffer ------------------------------------------------------
+  -- File explorer: neo-tree -----------------------------------------------
   {
-    'stevearc/oil.nvim',
-    lazy = false,
+    'nvim-neo-tree/neo-tree.nvim',
+    branch = 'v3.x',
+    cmd = 'Neotree',
+    dependencies = {
+      'nvim-lua/plenary.nvim',
+      'MunifTanjim/nui.nvim',
+      -- nvim-web-devicons is supplied by mini.icons' mock_nvim_web_devicons().
+    },
     keys = {
-      { '<leader>e', '<cmd>Oil<cr>', desc = 'File explorer (oil)' },
-      { '-', '<cmd>Oil<cr>', desc = 'Open parent directory' },
+      { '<leader>e', '<cmd>Neotree toggle<cr>', desc = 'File explorer (neo-tree)' },
+      { '<leader>ef', '<cmd>Neotree focus<cr>', desc = 'Focus file explorer' },
+      { '-', '<cmd>Neotree reveal<cr>', desc = 'Reveal current file' },
     },
     opts = {
-      default_file_explorer = true,
-      delete_to_trash = true,
-      skip_confirm_for_simple_edits = true,
-      view_options = { show_hidden = true },
-      keymaps = {
-        ['<C-s>'] = false,   -- leave window splits alone
-        ['<C-h>'] = false,
-        ['q'] = 'actions.close',
+      close_if_last_window = true,
+      filesystem = {
+        follow_current_file = { enabled = true },
+        use_libuv_file_watcher = true,
+        filtered_items = { hide_dotfiles = false, hide_gitignored = false },
       },
+      window = { width = 35 },
     },
   },
 

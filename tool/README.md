@@ -53,7 +53,7 @@ stow --dir /opt/github/thmb/library/tool --target "$HOME" bash neovim git tmux
 | Directory jump | `zoxide` (`z`, `zi`) |
 | Per-project env | `direnv` |
 | Git TUI / diffs | `lazygit`, `delta` |
-| Prompt | `oh-my-posh` (powerlevel10k_rainbow), `__git_ps1` fallback |
+| Prompt | `oh-my-posh` (powerlevel10k_lean), `__git_ps1` fallback |
 | Editor | Neovim 0.12.5, installed to `~/.local/opt` |
 | Multiplexer | `tmux`, prefix `C-Space` |
 
@@ -88,7 +88,7 @@ Debian renames two binaries (`bat`→`batcat`, `fd`→`fdfind`); `setup.sh` crea
   `C-l` is clear-screen in readline.
 - **The prompt is PowerLevel10k-style, not powerlevel10k.** p10k is a zsh
   theme; on bash the equivalent look comes from `oh-my-posh` running its
-  `powerlevel10k_rainbow` theme (tracked in `bash/.config/oh-my-posh/`). If the
+  `powerlevel10k_lean` theme (tracked in `bash/.config/oh-my-posh/`). If the
   binary is absent, `prompt.sh` falls back to a minimal `__git_ps1` prompt.
 - **The terminal font is the Nerd Font *Mono* variant, using MesloLGS.** The
   plain `Meslo Nerd Font` (and `JetBrainsMono Nerd Font`) lets icon glyphs take

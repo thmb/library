@@ -27,9 +27,10 @@ __pc_assemble() {
     PROMPT_COMMAND="$(IFS=';'; printf '%s' "${parts[*]}")"
 }
 
-if command -v oh-my-posh >/dev/null 2>&1 && [ -f "$HOME/.config/oh-my-posh/powerlevel10k_lean.omp.json" ]; then
-    # powerlevel10k_lean: single-line p10k layout (path + git left, time right).
-    eval "$(oh-my-posh init bash --config "$HOME/.config/oh-my-posh/powerlevel10k_lean.omp.json")"
+if command -v oh-my-posh >/dev/null 2>&1 && [ -f "$HOME/.config/oh-my-posh/powerlevel10k_classic.omp.json" ]; then
+    # powerlevel10k_classic: the canonical single-line p10k look (os, path and
+    # git on the left; time and status on the right).
+    eval "$(oh-my-posh init bash --config "$HOME/.config/oh-my-posh/powerlevel10k_classic.omp.json")"
     PROMPT_RENDERER=_omp_hook
 else
     # Fallback: minimal git-aware prompt. __git_ps1 ships with the git package

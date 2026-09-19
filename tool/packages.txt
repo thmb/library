@@ -1,0 +1,30 @@
+# apt packages for the terminal/editor toolchain.
+# Installed by setup.sh. One package per line; # comments and blanks ignored.
+# All of these are in Debian Trixie main -- no external repos required.
+
+# fuzzy finding and search
+fzf
+ripgrep
+fd-find          # binary is `fdfind`; setup.sh symlinks it to `fd`
+bat              # binary is `batcat`; setup.sh symlinks it to `bat`
+
+# navigation and listing
+eza
+zoxide
+
+# git
+git-delta        # binary is `delta`
+lazygit
+
+# shell environment
+direnv
+stow
+wl-clipboard     # Wayland clipboard, for Neovim "+y
+
+# build / language tooling
+make
+clangd
+clang-format     # from apt so it matches clangd's version
+shellcheck
+yamllint
+python3-venv     # required by mason's PyPI installer (basedpyright) - ensurepip

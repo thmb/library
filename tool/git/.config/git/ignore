@@ -1,0 +1,52 @@
+# Global gitignore - things that should never be committed anywhere.
+
+# Editors
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+.nvim.lua
+.exrc
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Direnv
+.direnv/
+.envrc.local
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Terraform / OpenTofu
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfvars
+!*.tfvars.example
+
+# Secrets and local overrides
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Build artefacts
+dist/
+build/
+*.log

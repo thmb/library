@@ -84,8 +84,22 @@ Debian renames two binaries (`bat`→`batcat`, `fd`→`fdfind`); `setup.sh` crea
   The default `C-b` would shadow `backward-char` in bash and `<C-b>` in Neovim.
 - **Pane navigation is `M-hjkl`, not `C-hjkl`**, because `C-h` is backspace and
   `C-l` is clear-screen in readline.
+- **`.tf` is pinned to the `terraform` filetype.** Neovim's `.tf` detection is
+  content-sensitive: a new or comment-only file is classified as `tf`, which is
+  TinyFugue (a MUD scripting language), so it would get neither terraformls nor
+  a formatter until real HCL was typed. `options.lua` pins the extension.
+- **Terraform formatting runs `tofu`, not `terraform`.** conform's builtin
+  `terraform_fmt` hardcodes the `terraform` binary; this machine has OpenTofu,
+  so `plugins/lsp.lua` overrides the command.
+- **`python3-venv` is required** for mason's PyPI installer (`ensurepip`); without
+  it `basedpyright` fails with an opaque `spawn: python3 failed`.
 - Plugin versions are pinned in `neovim/.config/nvim/lazy-lock.json`; language
   servers are pinned by the `ensure_installed` list in `plugins/lsp.lua`.
+- **`document_color` and `linked_editing_range` are enabled globally, not
+  per-buffer.** Requiring `vim.lsp.document_color` *is* the enable call (it
+  self-enables on load), whereas `linked_editing_range` needs an explicit
+  `enable()`. Both take a filter *table*, not a buffer number - passing a
+  bufnr raises `filter: expected table, got number` on every buffer open.
 
 ## Reverting
 

@@ -97,6 +97,30 @@ o.foldlevel = 99
 o.foldtext = ''
 o.fillchars = 'fold: ,foldopen:v,foldclose:>,foldsep: ,diff:/,eob: '
 
+-- Filetype pinning ---------------------------------------------------------
+-- Neovim's .tf detection is content-sensitive: a brand-new or comment-only
+-- .tf file is classified as `tf` (TinyFugue, a MUD scripting language), which
+-- means no terraformls and no formatter until real HCL is typed. This machine
+-- runs OpenTofu, so pin the extension deterministically.
+vim.filetype.add({
+  extension = {
+    tf = 'terraform',
+    tfvars = 'terraform',
+  },
+})
+
+-- Filetype pinning ---------------------------------------------------------
+-- Neovim's .tf detection is content-sensitive: a brand-new or comment-only
+-- .tf file is classified as `tf`, which is TinyFugue (a MUD scripting
+-- language) rather than Terraform. That means no terraformls and no formatter
+-- until real HCL is typed. This machine runs OpenTofu daily and nothing uses
+-- TinyFugue, so pin the extension deterministically.
+-- .tfvars is left alone: Neovim already gives it the dedicated
+-- `terraform-vars` filetype, which conform maps below.
+vim.filetype.add({
+  extension = { tf = 'terraform' },
+})
+
 -- Diagnostics: virtual_lines only for the current line keeps things quiet but
 -- readable; virtual_text off avoids the wall-of-text effect.
 vim.diagnostic.config({

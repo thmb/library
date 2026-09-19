@@ -107,8 +107,21 @@ return {
 
       vim.lsp.enable(servers)
 
-      -- On attach: native completion, inlay hints, document colour, linked
-      -- editing. The last three are 0.12 features that replace plugins.
+      -- Two 0.12 natives that replace whole plugins. Both are global and
+      -- one-time, so they live here rather than in the per-buffer LspAttach
+      -- handler below.
+      --   document_color        -> inline colour swatches (nvim-colorizer)
+      --   linked_editing_range  -> paired HTML tag rename (nvim-ts-autotag)
+      --
+      -- Note the asymmetry: requiring the document_color module *is* the
+      -- enable call, because it self-enables globally on load, whereas
+      -- linked_editing_range needs an explicit enable().
+      pcall(require, 'vim.lsp.document_color')
+      local ok_ler, ler = pcall(require, 'vim.lsp.linked_editing_range')
+      if ok_ler then pcall(ler.enable, true) end
+
+      -- Per-buffer: native completion plus the LSP keymaps. The 0.12 native
+      -- document colour and linked editing are handled globally above.
       vim.api.nvim_create_autocmd('LspAttach', {
         group = vim.api.nvim_create_augroup('thmb_lsp_attach', { clear = true }),
         callback = function(ev)
@@ -119,18 +132,6 @@ return {
           -- Native LSP completion feeding the built-in 'autocomplete'.
           if client:supports_method('textDocument/completion') then
             vim.lsp.completion.enable(true, client.id, buf, { autotrigger = true })
-          end
-
-          -- Inline colour swatches (replaces nvim-colorizer for CSS etc.).
-          if client:supports_method('textDocument/documentColor')
-            and vim.lsp.document_color then
-            vim.lsp.document_color.enable(true, buf)
-          end
-
-          -- Auto-rename paired HTML tags (replaces nvim-ts-autotag).
-          if client:supports_method('textDocument/linkedEditingRange')
-            and vim.lsp.linked_editing_range then
-            vim.lsp.linked_editing_range.enable(true, { bufnr = buf })
           end
 
           local function map(lhs, rhs, desc, mode)
@@ -191,6 +192,7 @@ return {
         cpp = { 'clang-format' },
         sql = { 'sql_formatter' },
         terraform = { 'terraform_fmt' },
+        ['terraform-vars'] = { 'terraform_fmt' },
         hcl = { 'terraform_fmt' },
         ['_'] = { 'trim_whitespace' },
       },
@@ -203,6 +205,9 @@ return {
       end,
       formatters = {
         shfmt = { prepend_args = { '-i', '2', '-ci' } },
+        -- conform's builtin hardcodes `terraform`, which isn't installed here;
+        -- OpenTofu provides a CLI-compatible `tofu fmt`.
+        terraform_fmt = { command = 'tofu' },
       },
     },
     init = function()

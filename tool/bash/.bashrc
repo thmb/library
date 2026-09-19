@@ -124,12 +124,11 @@ export PATH="$HOME/.opencode/bin:$PATH"
 #
 # Order matters:
 #   env     first  - tools.sh reads $FZF_* and PATH
-#   prompt  before tools - zoxide and direnv *prepend* their hooks to
-#           PROMPT_COMMAND, so the prompt must claim it first or those hooks
-#           get overwritten and silently stop working
-#   tools   last
+#   tools   next   - zoxide and direnv register their PROMPT_COMMAND hooks
+#   prompt  last   - assembles the final PROMPT_COMMAND so the prompt renderer
+#           runs FIRST (correct exit code) ahead of those hooks
 # ---------------------------------------------------------------------------
-for _rc in env aliases prompt tools; do
+for _rc in env aliases tools prompt; do
     [ -r "$HOME/.config/bash/$_rc.sh" ] && . "$HOME/.config/bash/$_rc.sh"
 done
 unset _rc

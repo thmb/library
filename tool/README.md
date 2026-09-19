@@ -13,7 +13,8 @@ package whose internal structure mirrors `$HOME`.
 tool/
 ├── setup.sh        reproduces the whole toolchain on a fresh machine
 ├── packages.txt    apt package list consumed by setup.sh
-├── bash/           .bashrc + .config/bash/{env,aliases,tools,prompt}.sh
+├── bash/           .bashrc + .config/bash/{env,aliases,tools,prompt}.sh,
+│                   .config/oh-my-posh/ (p10k-style theme)
 ├── neovim/         .config/nvim/  (Neovim >= 0.12)
 ├── git/            .config/git/{tracked.conf,ignore}
 └── tmux/           .tmux.conf
@@ -52,6 +53,7 @@ stow --dir /opt/github/thmb/library/tool --target "$HOME" bash neovim git tmux
 | Directory jump | `zoxide` (`z`, `zi`) |
 | Per-project env | `direnv` |
 | Git TUI / diffs | `lazygit`, `delta` |
+| Prompt | `oh-my-posh` (powerlevel10k_rainbow), `__git_ps1` fallback |
 | Editor | Neovim 0.12.5, installed to `~/.local/opt` |
 | Multiplexer | `tmux`, prefix `C-Space` |
 
@@ -84,10 +86,15 @@ Debian renames two binaries (`bat`→`batcat`, `fd`→`fdfind`); `setup.sh` crea
   The default `C-b` would shadow `backward-char` in bash and `<C-b>` in Neovim.
 - **Pane navigation is `M-hjkl`, not `C-hjkl`**, because `C-h` is backspace and
   `C-l` is clear-screen in readline.
-- **The terminal font is the Nerd Font *Mono* variant.** The plain `JetBrainsMono
-  Nerd Font` lets its icon glyphs take their natural (often double) width, which
-  misaligns text in a fixed-cell terminal and reads as excessive horizontal
-  spacing. `...NerdFontMono` forces every glyph into one cell.
+- **The prompt is PowerLevel10k-style, not powerlevel10k.** p10k is a zsh
+  theme; on bash the equivalent look comes from `oh-my-posh` running its
+  `powerlevel10k_rainbow` theme (tracked in `bash/.config/oh-my-posh/`). If the
+  binary is absent, `prompt.sh` falls back to a minimal `__git_ps1` prompt.
+- **The terminal font is the Nerd Font *Mono* variant, using MesloLGS.** The
+  plain `Meslo Nerd Font` (and `JetBrainsMono Nerd Font`) lets icon glyphs take
+  their natural (often double) width, which misaligns text in a fixed-cell
+  terminal and reads as excessive horizontal spacing. `...NerdFontMono` forces
+  every glyph into one cell; Meslo is also tighter than JetBrainsMono.
 - **`.tf` is pinned to the `terraform` filetype.** Neovim's `.tf` detection is
   content-sensitive: a new or comment-only file is classified as `tf`, which is
   TinyFugue (a MUD scripting language), so it would get neither terraformls nor

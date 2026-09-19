@@ -12,11 +12,11 @@
 set -euo pipefail
 
 NVIM_VERSION=0.12.5
-FONT_NAME='JetBrainsMono'
 # Mono variant: every glyph (including Nerd Font icons) is forced to a single
 # cell, which terminals need. The plain "Nerd Font" variant lets icons take
 # their natural (often double) width, which misaligns and looks too spaced.
-TERMINAL_FONT='JetBrainsMono Nerd Font Mono 11'
+TERMINAL_FONT='MesloLGS Nerd Font Mono 12'
+OMP_VERSION=31.3.0
 STOW_PACKAGES=(bash neovim git tmux)
 
 TOOL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -84,24 +84,40 @@ install_neovim() {
   ln -sfn "$target/bin/nvim" "$HOME/.local/bin/nvim"
 }
 
-# --- nerd font ---------------------------------------------------------------
-install_font() {
-  local dir="$HOME/.local/share/fonts/${FONT_NAME}NerdFont"
-  if [ -f "$dir/${FONT_NAME}NerdFontMono-Regular.ttf" ]; then
-    log "$FONT_NAME Nerd Font (Mono) already installed"
+# --- oh-my-posh --------------------------------------------------------------
+# PowerLevel10k-style prompt for bash (powerlevel10k itself is zsh-only). The
+# theme is tracked in the repo and referenced by prompt.sh.
+install_oh_my_posh() {
+  if [ -x "$HOME/.local/bin/oh-my-posh" ]; then
+    log "oh-my-posh already installed"
     return
   fi
-  log "Installing $FONT_NAME Nerd Font Mono (regular/bold/italic/bolditalic only)"
+  log "Installing oh-my-posh $OMP_VERSION"
+  curl -fsSL -o "$HOME/.local/bin/oh-my-posh" \
+    "https://github.com/JanDeDobbeleer/oh-my-posh/releases/download/v$OMP_VERSION/posh-linux-amd64"
+  chmod +x "$HOME/.local/bin/oh-my-posh"
+}
+
+# --- nerd font ---------------------------------------------------------------
+install_font() {
+  # Meslo LGS is the p10k-recommended typeface; the Mono variant keeps every
+  # glyph (icons included) to a single cell. File/dir names are Meslo-specific.
+  local dir="$HOME/.local/share/fonts/MesloLGS"
+  if [ -f "$dir/MesloLGSNerdFontMono-Regular.ttf" ]; then
+    log "MesloLGS Nerd Font Mono already installed"
+    return
+  fi
+  log "Installing MesloLGS Nerd Font Mono (regular/bold/italic/bolditalic)"
   local tmp
   tmp="$(mktemp -d)"
   curl -fsSL -o "$tmp/font.zip" \
-    "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/${FONT_NAME}.zip"
+    "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Meslo.zip"
   mkdir -p "$dir"
   unzip -o -j "$tmp/font.zip" \
-    "${FONT_NAME}NerdFontMono-Regular.ttf" \
-    "${FONT_NAME}NerdFontMono-Bold.ttf" \
-    "${FONT_NAME}NerdFontMono-Italic.ttf" \
-    "${FONT_NAME}NerdFontMono-BoldItalic.ttf" -d "$dir" >/dev/null
+    "MesloLGSNerdFontMono-Regular.ttf" \
+    "MesloLGSNerdFontMono-Bold.ttf" \
+    "MesloLGSNerdFontMono-Italic.ttf" \
+    "MesloLGSNerdFontMono-BoldItalic.ttf" -d "$dir" >/dev/null
   rm -rf "$tmp"
   fc-cache -f "$HOME/.local/share/fonts" >/dev/null
 }
@@ -178,6 +194,7 @@ fi
 
 setup_local_bin
 install_neovim
+install_oh_my_posh
 install_font
 configure_terminal_font
 setup_git_include

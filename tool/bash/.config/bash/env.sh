@@ -12,8 +12,11 @@ export PATH
 # Debian's ~/.profile sources ~/.bashrc (line 15) and only *then* prepends
 # ~/.local/bin unconditionally (line 26), so login shells end up with it twice
 # no matter what we check here. Dedupe instead, keeping first occurrence.
-# Called once from PROMPT_COMMAND, i.e. after every startup file has run.
+# Runs from PROMPT_COMMAND, i.e. after every startup file has run. Idempotent,
+# so it can stay in the PROMPT_COMMAND chain and simply no-op after the first run.
 __path_dedupe() {
+    [ -n "${__path_deduped:-}" ] && return
+    __path_deduped=1
     local IFS=: d seen=
     for d in $PATH; do
         [ -n "$d" ] || continue

@@ -13,7 +13,10 @@ set -euo pipefail
 
 NVIM_VERSION=0.12.5
 FONT_NAME='JetBrainsMono'
-TERMINAL_FONT='JetBrainsMono Nerd Font 11'
+# Mono variant: every glyph (including Nerd Font icons) is forced to a single
+# cell, which terminals need. The plain "Nerd Font" variant lets icons take
+# their natural (often double) width, which misaligns and looks too spaced.
+TERMINAL_FONT='JetBrainsMono Nerd Font Mono 11'
 STOW_PACKAGES=(bash neovim git tmux)
 
 TOOL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -84,21 +87,21 @@ install_neovim() {
 # --- nerd font ---------------------------------------------------------------
 install_font() {
   local dir="$HOME/.local/share/fonts/${FONT_NAME}NerdFont"
-  if [ -f "$dir/${FONT_NAME}NerdFont-Regular.ttf" ]; then
-    log "$FONT_NAME Nerd Font already installed"
+  if [ -f "$dir/${FONT_NAME}NerdFontMono-Regular.ttf" ]; then
+    log "$FONT_NAME Nerd Font (Mono) already installed"
     return
   fi
-  log "Installing $FONT_NAME Nerd Font (regular/bold/italic/bolditalic only)"
+  log "Installing $FONT_NAME Nerd Font Mono (regular/bold/italic/bolditalic only)"
   local tmp
   tmp="$(mktemp -d)"
   curl -fsSL -o "$tmp/font.zip" \
     "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/${FONT_NAME}.zip"
   mkdir -p "$dir"
   unzip -o -j "$tmp/font.zip" \
-    "${FONT_NAME}NerdFont-Regular.ttf" \
-    "${FONT_NAME}NerdFont-Bold.ttf" \
-    "${FONT_NAME}NerdFont-Italic.ttf" \
-    "${FONT_NAME}NerdFont-BoldItalic.ttf" -d "$dir" >/dev/null
+    "${FONT_NAME}NerdFontMono-Regular.ttf" \
+    "${FONT_NAME}NerdFontMono-Bold.ttf" \
+    "${FONT_NAME}NerdFontMono-Italic.ttf" \
+    "${FONT_NAME}NerdFontMono-BoldItalic.ttf" -d "$dir" >/dev/null
   rm -rf "$tmp"
   fc-cache -f "$HOME/.local/share/fonts" >/dev/null
 }

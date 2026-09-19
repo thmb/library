@@ -84,6 +84,10 @@ Debian renames two binaries (`bat`→`batcat`, `fd`→`fdfind`); `setup.sh` crea
   The default `C-b` would shadow `backward-char` in bash and `<C-b>` in Neovim.
 - **Pane navigation is `M-hjkl`, not `C-hjkl`**, because `C-h` is backspace and
   `C-l` is clear-screen in readline.
+- **The terminal font is the Nerd Font *Mono* variant.** The plain `JetBrainsMono
+  Nerd Font` lets its icon glyphs take their natural (often double) width, which
+  misaligns text in a fixed-cell terminal and reads as excessive horizontal
+  spacing. `...NerdFontMono` forces every glyph into one cell.
 - **`.tf` is pinned to the `terraform` filetype.** Neovim's `.tf` detection is
   content-sensitive: a new or comment-only file is classified as `tf`, which is
   TinyFugue (a MUD scripting language), so it would get neither terraformls nor

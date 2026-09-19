@@ -1,0 +1,14 @@
+# ~/.config/starship.toml - minimal single-line prompt.
+#
+# Starship's default format mixes in language versions, username and hostname,
+# which reads as clutter on a single-user machine. Keep just the essentials:
+# directory, git branch/status and the prompt character.
+
+format = '$directory$git_branch$git_status$character'
+
+[directory]
+truncation_length = 3
+
+[character]
+success_symbol = '[❯](bold green)'
+error_symbol = '[❯](bold red)'

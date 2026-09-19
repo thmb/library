@@ -16,7 +16,6 @@ NVIM_VERSION=0.12.5
 # cell, which terminals need. The plain "Nerd Font" variant lets icons take
 # their natural (often double) width, which misaligns and looks too spaced.
 TERMINAL_FONT='MesloLGS Nerd Font Mono 12'
-OMP_VERSION=31.3.0
 STOW_PACKAGES=(bash neovim git tmux)
 
 TOOL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -82,20 +81,6 @@ install_neovim() {
     rm -rf "$tmp"
   fi
   ln -sfn "$target/bin/nvim" "$HOME/.local/bin/nvim"
-}
-
-# --- oh-my-posh --------------------------------------------------------------
-# PowerLevel10k-style prompt for bash (powerlevel10k itself is zsh-only). The
-# theme is tracked in the repo and referenced by prompt.sh.
-install_oh_my_posh() {
-  if [ -x "$HOME/.local/bin/oh-my-posh" ]; then
-    log "oh-my-posh already installed"
-    return
-  fi
-  log "Installing oh-my-posh $OMP_VERSION"
-  curl -fsSL -o "$HOME/.local/bin/oh-my-posh" \
-    "https://github.com/JanDeDobbeleer/oh-my-posh/releases/download/v$OMP_VERSION/posh-linux-amd64"
-  chmod +x "$HOME/.local/bin/oh-my-posh"
 }
 
 # --- nerd font ---------------------------------------------------------------
@@ -194,7 +179,6 @@ fi
 
 setup_local_bin
 install_neovim
-install_oh_my_posh
 install_font
 configure_terminal_font
 setup_git_include

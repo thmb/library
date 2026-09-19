@@ -1,12 +1,10 @@
-# prompt.sh - PowerLevel10k-style prompt via oh-my-posh, with a __git_ps1
-# fallback when the binary is missing.
+# prompt.sh - starship prompt for bash, with a minimal __git_ps1 fallback when
+# the binary is missing.
 #
-# oh-my-posh's bash init *appends* its _omp_hook (and switches PROMPT_COMMAND to
-# an array), while zoxide and direnv *prepend* their hooks (as a scalar), and
-# VTE may have prepended __vte_prompt_command at login. Rather than let four
-# mutation styles fight over scalars vs arrays (which silently drops hooks),
-# this file assembles the final scalar PROMPT_COMMAND explicitly, putting the
-# renderer FIRST so it captures the real exit code of the previous command.
+# Starship's own bash init handles PROMPT_COMMAND ordering for us: it saves
+# whatever was already there (zoxide, direnv, VTE, the PATH dedupe) into
+# STARSHIP_PROMPT_COMMAND, runs that after capturing the previous command's exit
+# status, and only then renders PS1. So no hand-assembled hook order is needed.
 
 # Append a command to the (scalar) PROMPT_COMMAND without duplicating it.
 __pc_append() {
@@ -17,21 +15,12 @@ __pc_append() {
     esac
 }
 
-# Final assembly: renderer first (correct $?), state-update hooks after.
-__pc_assemble() {
-    local parts=("$PROMPT_RENDERER")
-    declare -f __path_dedupe >/dev/null 2>&1    && parts+=(__path_dedupe)
-    declare -f __vte_prompt_command >/dev/null 2>&1 && parts+=(__vte_prompt_command)
-    declare -f __zoxide_hook >/dev/null 2>&1    && parts+=(__zoxide_hook)
-    declare -f _direnv_hook >/dev/null 2>&1     && parts+=(_direnv_hook)
-    PROMPT_COMMAND="$(IFS=';'; printf '%s' "${parts[*]}")"
-}
+# One-time PATH dedupe (see env.sh). Registered before starship so it is picked
+# up into STARSHIP_PROMPT_COMMAND; it no-ops after the first run.
+declare -F __path_dedupe >/dev/null 2>&1 && __pc_append __path_dedupe
 
-if command -v oh-my-posh >/dev/null 2>&1 && [ -f "$HOME/.config/oh-my-posh/powerlevel10k_classic.omp.json" ]; then
-    # powerlevel10k_classic: the canonical single-line p10k look (os, path and
-    # git on the left; time and status on the right).
-    eval "$(oh-my-posh init bash --config "$HOME/.config/oh-my-posh/powerlevel10k_classic.omp.json")"
-    PROMPT_RENDERER=_omp_hook
+if command -v starship >/dev/null 2>&1; then
+    eval "$(starship init bash)"
 else
     # Fallback: minimal git-aware prompt. __git_ps1 ships with the git package
     # (/usr/lib/git-core/git-sh-prompt), so no extra dependency.
@@ -65,8 +54,19 @@ else
             PS1="${pre}\[\e[1;34m\]\w\[\e[0m\] \\\$ "
         fi
     }
-    PROMPT_RENDERER=__prompt
+
+    # Rebuild PROMPT_COMMAND with the renderer first (so it sees the real exit
+    # code), then dedupe, VTE, zoxide and direnv.
+    __prompt_assemble() {
+        local parts=(__prompt)
+        declare -F __path_dedupe >/dev/null 2>&1      && parts+=(__path_dedupe)
+        declare -F __vte_prompt_command >/dev/null 2>&1 && parts+=(__vte_prompt_command)
+        declare -F __zoxide_hook >/dev/null 2>&1      && parts+=(__zoxide_hook)
+        declare -F _direnv_hook >/dev/null 2>&1       && parts+=(_direnv_hook)
+        PROMPT_COMMAND="$(IFS=';'; printf '%s' "${parts[*]}")"
+    }
+    __prompt_assemble
+    unset -f __prompt_assemble
 fi
 
-__pc_assemble
-unset -f __pc_append __pc_assemble
+unset -f __pc_append

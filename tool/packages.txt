@@ -20,6 +20,7 @@ lazygit
 direnv
 stow
 wl-clipboard     # Wayland clipboard, for Neovim "+y
+starship         # prompt
 
 # build / language tooling
 make

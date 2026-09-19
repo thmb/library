@@ -13,8 +13,8 @@ package whose internal structure mirrors `$HOME`.
 tool/
 ├── setup.sh        reproduces the whole toolchain on a fresh machine
 ├── packages.txt    apt package list consumed by setup.sh
-├── bash/           .bashrc + .config/bash/{env,aliases,tools,prompt}.sh,
-│                   .config/oh-my-posh/ (p10k-style theme)
+├── bash/           .bashrc, .config/bash/{env,aliases,tools,prompt}.sh,
+│                   .config/starship.toml
 ├── neovim/         .config/nvim/  (Neovim >= 0.12)
 ├── git/            .config/git/{tracked.conf,ignore}
 └── tmux/           .tmux.conf
@@ -53,7 +53,7 @@ stow --dir /opt/github/thmb/library/tool --target "$HOME" bash neovim git tmux
 | Directory jump | `zoxide` (`z`, `zi`) |
 | Per-project env | `direnv` |
 | Git TUI / diffs | `lazygit`, `delta` |
-| Prompt | `oh-my-posh` (powerlevel10k_classic), `__git_ps1` fallback |
+| Prompt | `starship`, `__git_ps1` fallback |
 | Editor | Neovim 0.12.5, installed to `~/.local/opt` |
 | Multiplexer | `tmux`, prefix `C-Space` |
 
@@ -86,10 +86,10 @@ Debian renames two binaries (`bat`→`batcat`, `fd`→`fdfind`); `setup.sh` crea
   The default `C-b` would shadow `backward-char` in bash and `<C-b>` in Neovim.
 - **Pane navigation is `M-hjkl`, not `C-hjkl`**, because `C-h` is backspace and
   `C-l` is clear-screen in readline.
-- **The prompt is PowerLevel10k-style, not powerlevel10k.** p10k is a zsh
-  theme; on bash the equivalent look comes from `oh-my-posh` running its
-  `powerlevel10k_classic` theme (tracked in `bash/.config/oh-my-posh/`). If the
-  binary is absent, `prompt.sh` falls back to a minimal `__git_ps1` prompt.
+- **The prompt is `starship`**, kept deliberately minimal via
+  `bash/.config/starship.toml` (directory, git branch/status, prompt character
+  only - no language versions or username/hostname). If the binary is absent,
+  `prompt.sh` falls back to a minimal `__git_ps1` prompt.
 - **The terminal font is the Nerd Font *Mono* variant, using MesloLGS.** The
   plain `Meslo Nerd Font` (and `JetBrainsMono Nerd Font`) lets icon glyphs take
   their natural (often double) width, which misaligns text in a fixed-cell

@@ -156,9 +156,11 @@ return {
       -- nvim-web-devicons is supplied by mini.icons' mock_nvim_web_devicons().
     },
     keys = {
-      { '<leader>e', '<cmd>Neotree toggle<cr>', desc = 'File explorer (neo-tree)' },
-      { '<leader>ef', '<cmd>Neotree focus<cr>', desc = 'Focus file explorer' },
-      { '-', '<cmd>Neotree reveal<cr>', desc = 'Reveal current file' },
+      { '<leader>n', '<cmd>Neotree toggle<cr>', desc = 'File explorer (neo-tree)' },
+      { '<leader>nf', '<cmd>Neotree filesystem<cr>', desc = 'File explorer (filesystem)' },
+      { '<leader>nb', '<cmd>Neotree buffers<cr>', desc = 'Open buffers' },
+      { '<leader>ng', '<cmd>Neotree git_status<cr>', desc = 'Git modified files' },
+      { '<leader>nr', '<cmd>Neotree reveal<cr>', desc = 'Reveal current file' },
     },
     opts = {
       close_if_last_window = true,

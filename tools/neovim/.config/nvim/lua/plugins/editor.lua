@@ -155,6 +155,20 @@ return {
       'MunifTanjim/nui.nvim',
       -- nvim-web-devicons is supplied by mini.icons' mock_nvim_web_devicons().
     },
+    -- Open the explorer at startup when no file was given.
+    init = function()
+      vim.api.nvim_create_autocmd('VimEnter', {
+        group = vim.api.nvim_create_augroup('thmb_neo_tree_startup', { clear = true }),
+        desc = 'Open neo-tree on startup when no file was given',
+        callback = function()
+          -- Piped input lands in a nameless buffer with content; skip that too.
+          if vim.fn.argc() > 0 or vim.api.nvim_buf_get_lines(0, 0, 1, false)[1] ~= '' then
+            return
+          end
+          vim.cmd('Neotree show')
+        end,
+      })
+    end,
     keys = {
       { '<leader>n', '<cmd>Neotree toggle<cr>', desc = 'File explorer (neo-tree)' },
       { '<leader>nf', '<cmd>Neotree filesystem<cr>', desc = 'File explorer (filesystem)' },

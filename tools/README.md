@@ -86,6 +86,18 @@ Debian renames two binaries (`bat`→`batcat`, `fd`→`fdfind`); `setup.sh` crea
   The default `C-b` would shadow `backward-char` in bash and `<C-b>` in Neovim.
 - **Pane navigation is `M-hjkl`, not `C-hjkl`**, because `C-h` is backspace and
   `C-l` is clear-screen in readline.
+- **Clipboard is Wayland-first.** `copy-command` is `wl-copy`, so every copy
+  path (mouse drag-end, double/triple-click, `Enter`, and `y` in copy-mode)
+  lands in the Wayland clipboard, and `prefix+v` pastes it (bracketed, so vim
+  and the shell don't mangle it). Over SSH `wl-paste` isn't on the remote, so
+  `prefix+v` pastes the tmux buffer instead.
+- **`Ctrl+Shift+C`/`Ctrl+Shift+V` are terminal shortcuts, not tmux's.**
+  gnome-terminal/VTE intercepts both before tmux sees them and also lacks OSC
+  52 support, so `set-clipboard` is a no-op here. `Ctrl+Shift+V` still pastes
+  the system clipboard into the active pane. Over SSH, the client-side
+  `Ctrl+Shift+C`/`Ctrl+Shift+V` keep working because they operate on the
+  terminal's rectangle selection; only mouse/copy-mode selections inside a
+  remote tmux can't reach the local clipboard.
 - **The prompt is `starship`**, kept deliberately minimal via
   `bash/.config/starship.toml` (directory, git branch/status, prompt character
   only - no language versions or username/hostname). If the binary is absent,

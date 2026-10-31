@@ -1,0 +1,14 @@
+{
+  "$schema": "https://opencode.ai/v2/cli.json",
+  "session": {
+    "sidebar": "hide"
+  },
+  "prompt": {
+    "paste": "full"
+  },
+  "attention": {
+    "notifications": true,
+    "sound": true,
+    "volume": 0.4
+  }
+}

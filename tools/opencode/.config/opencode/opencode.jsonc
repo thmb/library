@@ -1,0 +1,18 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "openrouter/deepseek/deepseek-pro-latest",
+  "small_model": "openrouter/deepseek/deepseek-chat",
+  "permission": {
+    "bash": {
+      "*": "allow",
+      "rm *": "ask",
+      "git commit *": "ask",
+      "git push *": "ask",
+      "terraform apply *": "ask",
+      "terraform destroy *": "ask",
+      "alembic upgrade *": "ask",
+      "alembic downgrade *": "ask"
+    }
+  },
+  "plugin": ["opencode-terminal-bell-notifier@latest"]
+}

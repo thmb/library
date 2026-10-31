@@ -16,7 +16,7 @@ NVIM_VERSION=0.12.5
 # cell, which terminals need. The plain "Nerd Font" variant lets icons take
 # their natural (often double) width, which misaligns and looks too spaced.
 TERMINAL_FONT='MesloLGS Nerd Font Mono 12'
-STOW_PACKAGES=(bash neovim git tmux)
+STOW_PACKAGES=(bash neovim git tmux opencode)
 
 TOOL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DO_SUDO=1
@@ -147,6 +147,46 @@ EOF
   fi
 }
 
+# --- tmux persistence --------------------------------------------------------
+# resurrect saves/restores tmux state; TPM installs the plugins headlessly
+# (no prefix+I ritual). The systemd user unit is deliberately not stowed --
+# systemd ignores symlinked unit directories -- so it is installed as a real
+# file and enabled here. It restores at login and saves at logout.
+setup_tmux_persist() {
+  local plugins="$HOME/.tmux/plugins"
+
+  if [ -d "$plugins/tpm" ]; then
+    log "tpm already cloned"
+  else
+    log "Cloning tpm (tmux plugin manager)"
+    mkdir -p "$plugins"
+    git clone --depth 1 https://github.com/tmux-plugins/tpm "$plugins/tpm"
+  fi
+
+  # install_plugins reads TMUX_PLUGIN_MANAGER_PATH from the tmux server, so the
+  # current config must already be loaded there: start a server if none exists
+  # (new-session keeps it alive), then (re)source the config into it.
+  if ! tmux has-session 2>/dev/null; then
+    tmux new-session -d 2>/dev/null || true
+  fi
+  tmux source-file "$HOME/.tmux.conf" 2>/dev/null || true
+
+  log "Installing tmux plugins (headless tpm install)"
+  "$plugins/tpm/bin/install_plugins"
+
+  log "Installing tmux-persist.service"
+  install -Dm 644 "$TOOL_DIR/tmux/.config/systemd/user/tmux-persist.service" \
+    "$HOME/.config/systemd/user/tmux-persist.service"
+
+  # enable only (never --now): an immediate restore could clobber a live session.
+  if systemctl --user daemon-reload 2>/dev/null; then
+    systemctl --user enable tmux-persist.service
+    log "tmux-persist.service enabled (takes effect at next login)"
+  else
+    warn "systemd user manager not running; unit installed but not enabled"
+  fi
+}
+
 # --- stow --------------------------------------------------------------------
 stow_packages() {
   command -v stow >/dev/null 2>&1 || { warn "stow not installed; skipping"; return; }
@@ -183,6 +223,7 @@ install_font
 configure_terminal_font
 setup_git_include
 stow_packages
+setup_tmux_persist
 
 log "Done. Next steps:"
 cat <<'EOF'

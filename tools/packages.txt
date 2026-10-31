@@ -22,6 +22,9 @@ stow
 wl-clipboard     # Wayland clipboard, for Neovim "+y
 starship         # prompt
 
+# notifications
+libnotify-bin    # notify-send, for opencode desktop notifications
+
 # build / language tooling
 make
 clangd

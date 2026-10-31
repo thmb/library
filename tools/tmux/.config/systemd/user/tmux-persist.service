@@ -1,0 +1,28 @@
+[Unit]
+Description=Restore tmux sessions at login and save them at logout
+Documentation=man:tmux(1) https://github.com/tmux-plugins/tmux-resurrect
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+# The tmux server forked below stays in this unit's cgroup. systemd runs
+# ExecStop *before* killing leftover processes, so logout = save then kill.
+
+# A bare `tmux start-server` exits immediately with no session, so create one
+# detached session to keep the server alive, then run resurrect's restore
+# inside it. run-shell exports $TMUX, so restore.sh talks to the right socket.
+# restore.sh is idempotent: with its single empty pane it does the documented
+# "restore from scratch"; anything already running is left untouched.
+ExecStart=/usr/bin/tmux new-session -d
+ExecStart=/usr/bin/tmux run-shell %h/.tmux/plugins/tmux-resurrect/scripts/restore.sh
+# A missing save file (first ever boot) makes restore.sh a harmless no-op, but
+# keep the unit active regardless so ExecStop keeps running at later logouts.
+ExecStart=/usr/bin/true
+
+# Snapshot everything at logout/shutdown, but only while the server is still
+# alive -- a dead server must not overwrite the last good snapshot with empty.
+ExecStop=/bin/sh -c 'tmux has-session 2>/dev/null && tmux run-shell %h/.tmux/plugins/tmux-resurrect/scripts/save.sh quiet'
+
+[Install]
+WantedBy=default.target

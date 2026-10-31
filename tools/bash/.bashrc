@@ -135,4 +135,6 @@ unset _rc
 
 # CUSTOM SETTINGS
 
+alias pipewire='rm -rf ~/.local/state/wireplumber/ & systemctl --user restart pipewire pipewire-pulse wireplumber'
+
 export ANYTHING_LLM_INSTALL_DIR=/opt/anythingllm

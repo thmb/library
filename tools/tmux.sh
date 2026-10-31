@@ -1,3 +1,67 @@
+#!/usr/bin/env bash
+# tmux.sh - tmux + session persistence and its configuration
+#
+# Usage: ./tmux.sh
+#
+# Idempotent and safe to re-run: installs anything that is missing and
+# rewrites the configuration in place. sudo is requested only when an apt
+# package actually needs installing; nothing outside $HOME is touched.
+# Target: Debian Trixie or later.
+set -euo pipefail
+
+log()  { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
+warn() { printf '\033[1;33m!!\033[0m %s\n' "$*"; }
+
+# Install only the apt packages that are missing (one sudo round when needed).
+apt_install() {
+  local missing=() pkg
+  for pkg in "$@"; do
+    dpkg -s "$pkg" >/dev/null 2>&1 || missing+=("$pkg")
+  done
+  [ ${#missing[@]} -eq 0 ] && return 0
+  log "apt: installing ${missing[*]}"
+  sudo apt-get update
+  sudo apt-get install -y "${missing[@]}"
+}
+
+# Replace the file at $path with content from a quoted heredoc. Safe for the
+# backslash- and dollar-heavy content below. Any symlink on the path -- the
+# file itself or an ancestor directory left by the old stow layout -- is
+# replaced with a real file/directory, so nothing is written into a checkout.
+write_file() {
+  local path="$1" t; shift
+  # The caller tilde-expands "~" already, so $1 is absolute.
+  [ -L "$path" ] && rm -f "$path"
+  t="$(dirname "$path")"
+  while [ "$t" != "$HOME" ] && [ "$t" != "/" ]; do
+    [ -L "$t" ] && rm -f "$t"
+    t="$(dirname "$t")"
+  done
+  mkdir -p "$(dirname "$path")"
+  cat > "$path"
+}
+
+# Clone the first time, fast-forward on re-runs (keeps non-apt tools updated).
+clone_or_update() {
+  local dir="$1" url="$2"
+  if [ -d "$dir/.git" ]; then
+    log "updating $(basename "$dir")"
+    git -C "$dir" pull --ff-only
+  else
+    log "cloning $(basename "$dir")"
+    mkdir -p "$(dirname "$dir")"
+    git clone --depth 1 "$url" "$dir"
+  fi
+}
+
+apt_install tmux wl-clipboard fzf
+
+# --- plugins (non-apt): TPM + tmux-resurrect ------------------------------
+clone_or_update "$HOME/.tmux/plugins/tpm" https://github.com/tmux-plugins/tpm
+clone_or_update "$HOME/.tmux/plugins/tmux-resurrect" https://github.com/tmux-plugins/tmux-resurrect
+
+# --- configuration (written in place each run) -----------------------------
+write_file ~/.tmux.conf <<'EOF'
 # ~/.tmux.conf - deliberately small.
 
 # --- prefix ----------------------------------------------------------------
@@ -97,9 +161,53 @@ setw -g window-status-bell-style 'fg=colour214,bold'
 
 # --- session persistence (tmux-resurrect) ------------------------------------
 # Save with prefix+C-s, restore with prefix+C-r. TPM installs the plugins
-# (setup.sh runs install_plugins headlessly); a systemd user unit restores at
+# (tmux.sh installs them); a systemd user unit restores at
 # login and saves at logout -- see tools/tmux/.config/systemd/user/.
 set -g @plugin 'tmux-plugins/tpm'
 set -g @plugin 'tmux-plugins/tmux-resurrect'
 set -g @resurrect-capture-pane-contents 'on'   # keep pane scrollback (opencode transcripts)
 run '~/.tmux/plugins/tpm/tpm'
+EOF
+
+write_file ~/.config/systemd/user/tmux-persist.service <<'EOF'
+[Unit]
+Description=Restore tmux sessions at login and save them at logout
+Documentation=man:tmux(1) https://github.com/tmux-plugins/tmux-resurrect
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+# The tmux server forked below stays in this unit's cgroup. systemd runs
+# ExecStop *before* killing leftover processes, so logout = save then kill.
+
+# A bare `tmux start-server` exits immediately with no session, so create one
+# detached session to keep the server alive, then run resurrect's restore
+# inside it. run-shell exports $TMUX, so restore.sh talks to the right socket.
+# restore.sh is idempotent: with its single empty pane it does the documented
+# "restore from scratch"; anything already running is left untouched.
+ExecStart=/usr/bin/tmux new-session -d
+ExecStart=/usr/bin/tmux run-shell %h/.tmux/plugins/tmux-resurrect/scripts/restore.sh
+# A missing save file (first ever boot) makes restore.sh a harmless no-op, but
+# keep the unit active regardless so ExecStop keeps running at later logouts.
+ExecStart=/usr/bin/true
+
+# Snapshot everything at logout/shutdown, but only while the server is still
+# alive -- a dead server must not overwrite the last good snapshot with empty.
+ExecStop=/bin/sh -c 'tmux has-session 2>/dev/null && tmux run-shell %h/.tmux/plugins/tmux-resurrect/scripts/save.sh quiet'
+
+[Install]
+WantedBy=default.target
+EOF
+
+# Enable the login-restore/logout-save unit (no-op harmlessly without a user
+# manager, e.g. first login over plain SSH).
+if systemctl --user daemon-reload 2>/dev/null; then
+  systemctl --user enable tmux-persist.service 2>/dev/null || true
+  log "tmux-persist.service enabled (applies at next login)"
+else
+  warn "systemd user manager unavailable; unit installed but not enabled"
+fi
+
+# Reload a running server's config if one exists (bindings take effect now).
+tmux source-file "$HOME/.tmux.conf" 2>/dev/null || true

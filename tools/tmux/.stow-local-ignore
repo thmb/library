@@ -1,3 +1,0 @@
-# systemd refuses to follow symlinked unit directories, so the unit is copied
-# as a real file by setup.sh instead of being stowed as a symlink.
-systemd

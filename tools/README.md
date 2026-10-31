@@ -1,47 +1,58 @@
-# TOOL
+# TOOLS
 
 Workstation tooling: shell, editor, git and terminal multiplexer configuration.
 
-Target platform: **Debian Trixie**, GNOME/Wayland, bash, gnome-terminal.
+Target platform: **Debian Trixie** (or later), GNOME/Wayland, bash, gnome-terminal.
 
 ## Layout
 
-Each of `bash/`, `neovim/`, `git/` and `tmux/` is a [GNU stow](https://www.gnu.org/software/stow/)
-package whose internal structure mirrors `$HOME`.
+One self-contained script per tool. Each installs its apt dependencies, installs
+or updates anything not shipped by Debian, and writes its configuration **in
+place** with a fresh copy every run.
 
 ```
-tool/
-├── setup.sh        reproduces the whole toolchain on a fresh machine
-├── packages.txt    apt package list consumed by setup.sh
-├── bash/           .bashrc, .config/bash/{env,aliases,tools,prompt}.sh,
-│                   .config/starship.toml
-├── neovim/         .config/nvim/  (Neovim >= 0.12)
-├── git/            .config/git/{tracked.conf,ignore}
-└── tmux/           .tmux.conf
+tools/
+├── bash.sh        shell env: apt CLI tools, font, .bashrc, prompt
+├── neovim.sh      Neovim (tarball, pinned) + full editor config
+├── opencode.sh    OpenCode 2 binary + its config
+└── tmux.sh        tmux + session persistence + systemd restore unit
 ```
 
-## Install
+## Usage
+
+Run any script individually, or all of them:
 
 ```sh
-./setup.sh              # apt packages, Neovim tarball, font, stow
-./setup.sh --no-sudo    # skip the apt steps
-./setup.sh --stow       # only re-link the dotfiles
+for s in tools/*.sh; do bash "$s"; done
 ```
 
-Then:
+Every script is **idempotent**: safe to re-run many times, it only installs
+what is missing and overwrites the configuration in place. Bump the `VERSION`
+variable at the top of a script (Neovim, OpenCode) and re-run to upgrade;
+non-apt git checkouts (TPM, tmux-resurrect, the Nerd Font) are refreshed with a
+`git pull --ff-only` / re-download on every run.
+
+`sudo` is requested **only** when an apt package is actually missing
+(`apt_install` skips anything already installed). Nothing outside `$HOME` is
+touched except apt.
+
+After a fresh run:
 
 ```sh
-exec bash
-nvim                    # lazy.nvim bootstraps plugins on first launch
-:MasonToolsInstall      # language servers and formatters
+exec bash            # pick up the new shell config
+nvim                 # lazy.nvim bootstraps plugins on first launch
+:MasonToolsInstall   # language servers + formatters
 :checkhealth
 ```
 
-Linking by hand is equivalent to:
+## What each script owns
 
-```sh
-stow --dir /opt/github/thmb/library/tool --target "$HOME" bash neovim git tmux
-```
+| Script | apt packages | Non-apt (updated on re-run) | Config written in place |
+| --- | --- | --- | --- |
+| `bash.sh` | fzf, ripgrep, fd-find, bat, eza, zoxide, direnv, starship, git-delta, lazygit | MesloLGS Nerd Font **Mono**, gnome-terminal font (via gsettings, no sudo) | `~/.bashrc`, `~/.config/bash/{env,aliases,tools,prompt}.sh`, `~/.config/starship.toml`, `~/.local/bin/{bat,fd}` shims |
+| `neovim.sh` | make, clangd, clang-format, shellcheck, yamllint, python3-venv, fzf, fd-find, ripgrep | **Neovim** tarball → `~/.local/opt/nvim-$VERSION` | `~/.config/nvim/` (init.lua, lua/config/*, lua/plugins/*, lazy-lock.json) |
+| `opencode.sh` | libnotify-bin (desktop notifications, optional) | **OpenCode 2** via the official installer | `~/.config/opencode/{cli.json,opencode.jsonc}` |
+| `tmux.sh` | tmux, wl-clipboard, fzf | **TPM** + **tmux-resurrect** (git clone / pull) | `~/.tmux.conf`, `~/.config/systemd/user/tmux-persist.service` |
 
 ## Toolchain
 
@@ -54,24 +65,27 @@ stow --dir /opt/github/thmb/library/tool --target "$HOME" bash neovim git tmux
 | Per-project env | `direnv` |
 | Git TUI / diffs | `lazygit`, `delta` |
 | Prompt | `starship`, `__git_ps1` fallback |
-| Editor | Neovim 0.12.5, installed to `~/.local/opt` |
-| Multiplexer | `tmux`, prefix `C-Space` |
+| Editor | Neovim (pinned tarball), installed to `~/.local/opt` |
+| Multiplexer | `tmux`, prefix `C-Space`, resurrect for reboot persistence |
 
-Debian renames two binaries (`bat`→`batcat`, `fd`→`fdfind`); `setup.sh` creates
-`~/.local/bin` symlinks restoring the upstream names, because
-`FZF_DEFAULT_COMMAND` and scripts need real executables rather than aliases.
+Debian renames two binaries (`bat`→`batcat`, `fd`→`fdfind`); `bash.sh` creates
+`~/.local/bin` symlinks restoring the upstream names, because `FZF_DEFAULT_COMMAND`
+and scripts need real executables rather than aliases.
 
 ## Notes and deliberate choices
 
-- **Neovim is not the apt package.** Trixie ships 0.10.4; this config needs 0.12
+- **Neovim is not the apt package.** Trixie ships 0.10.x; this config needs 0.12+
   for `vim.lsp.config`/`vim.lsp.enable`, `'autocomplete'` and `'winborder'`.
-  `setup.sh` removes the apt package and installs the pinned tarball to
-  `~/.local/opt/nvim-$NVIM_VERSION`. Bump `NVIM_VERSION` to upgrade.
-- **Removing apt neovim orphans `xclip`.** `setup.sh` runs `apt-mark manual
+  `neovim.sh` removes the apt package and installs the pinned tarball to
+  `~/.local/opt/nvim-$VERSION`. Bump `VERSION` to upgrade.
+- **Removing apt neovim orphans `xclip`.** `neovim.sh` runs `apt-mark manual
   xclip` beforehand. Avoid `apt autoremove` immediately after a fresh run.
-- **`~/.config/git/config` is intentionally a real file**, not a stow symlink.
-  `git config --global` rewrites via lockfile+rename and would replace a symlink
-  with a regular file; it therefore only `include`s `tracked.conf`.
+- **Git is applied once, not scripted.** `~/.config/git/{config,ignore}` are
+  real files (written from the old `git/` package); `git config --global` is
+  safe because `config` is no longer a symlink.
+- **`~/.bashrc.local` is the machine-local escape hatch.** `bash.sh` sources it
+  from the end of `~/.bashrc` and never touches it, so personal aliases and
+  exports survive re-runs.
 - **No completion plugin.** Neovim 0.12's `'autocomplete'` plus
   `vim.lsp.completion.enable()` covers it.
 - **No statusline plugin.** The 0.12 default statusline already shows
@@ -87,46 +101,38 @@ Debian renames two binaries (`bat`→`batcat`, `fd`→`fdfind`); `setup.sh` crea
 - **Pane navigation is `M-hjkl`, not `C-hjkl`**, because `C-h` is backspace and
   `C-l` is clear-screen in readline.
 - **Clipboard is Wayland-first.** `copy-command` is `wl-copy`, so every copy
-  path (mouse drag-end, double/triple-click, `Enter`, and `y` in copy-mode)
-  lands in the Wayland clipboard, and `prefix+v` pastes it (bracketed, so vim
-  and the shell don't mangle it). Over SSH `wl-paste` isn't on the remote, so
-  `prefix+v` pastes the tmux buffer instead.
+  path lands in the Wayland clipboard, and `prefix+v` pastes it (bracketed). Over
+  SSH `wl-paste` isn't on the remote, so `prefix+v` pastes the tmux buffer.
 - **`Ctrl+Shift+C`/`Ctrl+Shift+V` are terminal shortcuts, not tmux's.**
   gnome-terminal/VTE intercepts both before tmux sees them and also lacks OSC
-  52 support, so `set-clipboard` is a no-op here. `Ctrl+Shift+V` still pastes
-  the system clipboard into the active pane. Over SSH, the client-side
-  `Ctrl+Shift+C`/`Ctrl+Shift+V` keep working because they operate on the
-  terminal's rectangle selection; only mouse/copy-mode selections inside a
-  remote tmux can't reach the local clipboard.
-- **The prompt is `starship`**, kept deliberately minimal via
-  `bash/.config/starship.toml` (directory, git branch/status, prompt character
-  only - no language versions or username/hostname). If the binary is absent,
-  `prompt.sh` falls back to a minimal `__git_ps1` prompt.
+  52 support, so `set-clipboard` is a no-op here.
+- **The prompt is `starship`**, kept deliberately minimal (directory, git
+  branch/status, prompt character only). If the binary is absent, `prompt.sh`
+  falls back to a minimal `__git_ps1` prompt.
 - **The terminal font is the Nerd Font *Mono* variant, using MesloLGS.** The
-  plain `Meslo Nerd Font` (and `JetBrainsMono Nerd Font`) lets icon glyphs take
-  their natural (often double) width, which misaligns text in a fixed-cell
-  terminal and reads as excessive horizontal spacing. `...NerdFontMono` forces
-  every glyph into one cell; Meslo is also tighter than JetBrainsMono.
+  plain variant lets icon glyphs take natural (often double) width, which
+  misaligns text in a fixed-cell terminal.
 - **`.tf` is pinned to the `terraform` filetype.** Neovim's `.tf` detection is
-  content-sensitive: a new or comment-only file is classified as `tf`, which is
-  TinyFugue (a MUD scripting language), so it would get neither terraformls nor
-  a formatter until real HCL was typed. `options.lua` pins the extension.
+  content-sensitive and misclassifies new/comment-only files as TinyFugue.
 - **Terraform formatting runs `tofu`, not `terraform`.** conform's builtin
-  `terraform_fmt` hardcodes the `terraform` binary; this machine has OpenTofu,
-  so `plugins/lsp.lua` overrides the command.
-- **`python3-venv` is required** for mason's PyPI installer (`ensurepip`); without
-  it `basedpyright` fails with an opaque `spawn: python3 failed`.
-- Plugin versions are pinned in `neovim/.config/nvim/lazy-lock.json`; language
-  servers are pinned by the `ensure_installed` list in `plugins/lsp.lua`.
-- **`document_color` and `linked_editing_range` are enabled globally, not
-  per-buffer.** Requiring `vim.lsp.document_color` *is* the enable call (it
-  self-enables on load), whereas `linked_editing_range` needs an explicit
-  `enable()`. Both take a filter *table*, not a buffer number - passing a
-  bufnr raises `filter: expected table, got number` on every buffer open.
+  hardcodes `terraform`; this machine has OpenTofu, so `plugins/lsp.lua`
+  overrides the command.
+- **`python3-venv` is required** for mason's PyPI installer (`ensurepip`);
+  without it `basedpyright` fails with an opaque `spawn: python3 failed`.
+- **Plugin versions are pinned in `lazy-lock.json`** (embedded in `neovim.sh`);
+  language servers are pinned by the `ensure_installed` list in `lsp.lua`.
+- **OpenCode 2 is installed via `opencode.ai/v2/install`**, *not*
+  `opencode.ai/install` (that is the V1 installer and would downgrade/break the
+  V2 config). Re-running `opencode.sh` updates to the latest V2 release.
 
-## Reverting
+## tmux session persistence
 
-```sh
-stow --dir /opt/github/thmb/library/tool --target "$HOME" -D bash neovim git tmux
-sudo apt install neovim          # restore Debian's 0.10.4
-```
+`tmux.sh` installs TPM + `tmux-resurrect` and enables a systemd user unit
+(`~/.config/systemd/user/tmux-persist.service`) that restores your sessions at
+login and saves them at logout, so a reboot loses nothing:
+
+- `prefix + C-s` — save now
+- `prefix + C-r` — restore the last saved state
+
+Snapshots live under `~/.local/share/tmux/resurrect/` (the XDG fallback used
+when `~/.tmux/resurrect` doesn't exist).

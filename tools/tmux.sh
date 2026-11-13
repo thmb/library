@@ -54,7 +54,7 @@ clone_or_update() {
   fi
 }
 
-apt_install tmux wl-clipboard fzf
+apt_install tmux wl-clipboard
 
 # --- plugins (non-apt): TPM + tmux-resurrect ------------------------------
 clone_or_update "$HOME/.tmux/plugins/tpm" https://github.com/tmux-plugins/tpm
@@ -96,14 +96,12 @@ bind c   new-window      -c "#{pane_current_path}"
 
 # --- pane navigation: M-hjkl ----------------------------------------------
 # Alt rather than Ctrl: Alt+h/j/k are unbound in readline and Alt+l is only
-# downcase-word, whereas C-h is backspace and C-l is clear-screen.
-# vim-tmux-navigator forwards these into nvim when the pane is running nvim.
-is_vim="ps -o state= -o comm= -t '#{pane_tty}' \
-    | grep -iqE '^[^TXZ ]+ +(\\S+\\/)?g?(view|n?vim?x?)(-wrapped)?(diff)?$'"
-bind-key -n 'M-h' if-shell "$is_vim" 'send-keys M-h' 'select-pane -L'
-bind-key -n 'M-j' if-shell "$is_vim" 'send-keys M-j' 'select-pane -D'
-bind-key -n 'M-k' if-shell "$is_vim" 'send-keys M-k' 'select-pane -U'
-bind-key -n 'M-l' if-shell "$is_vim" 'send-keys M-l' 'select-pane -R'
+# downcase-word, whereas C-h is backspace and C-l is clear-screen. These
+# always move tmux panes; inside nvim, <C-w>hjkl moves splits.
+bind-key -n 'M-h' select-pane -L
+bind-key -n 'M-j' select-pane -D
+bind-key -n 'M-k' select-pane -U
+bind-key -n 'M-l' select-pane -R
 bind-key -T copy-mode-vi 'M-h' select-pane -L
 bind-key -T copy-mode-vi 'M-j' select-pane -D
 bind-key -T copy-mode-vi 'M-k' select-pane -U
@@ -128,9 +126,13 @@ bind -T copy-mode-vi Escape send -X cancel
 # tmux buffer is pasted unchanged as a fallback.
 bind v run-shell 'command -v wl-paste >/dev/null 2>&1 && wl-paste -n | tmux load-buffer -' \; paste-buffer -p
 
-# --- fzf popup session switcher -------------------------------------------
-bind s display-popup -E -w 60% -h 40% \
-    "tmux list-sessions -F '#{session_name}' | fzf --reverse --header='switch session' | xargs -r tmux switch-client -t"
+# --- session list / new session ---------------------------------------------
+# Native tmux session tree (the default `s` binding). Enter switches to the
+# selected session; x kills the selected session/window/pane.
+bind s choose-tree -Zs
+
+# Prefix+S: create a new session, prompting for its name.
+bind S command-prompt -p "session name:" "new-session -s '%%'"
 
 # Reload config.
 bind r source-file ~/.tmux.conf \; display-message "tmux.conf reloaded"

@@ -40,7 +40,7 @@ After a fresh run:
 
 ```sh
 exec bash            # pick up the new shell config
-nvim                 # lazy.nvim bootstraps plugins on first launch
+nvim                 # vim.pack installs plugins at pinned revisions
 :MasonToolsInstall   # language servers + formatters
 :checkhealth
 ```
@@ -50,9 +50,9 @@ nvim                 # lazy.nvim bootstraps plugins on first launch
 | Script | apt packages | Non-apt (updated on re-run) | Config written in place |
 | --- | --- | --- | --- |
 | `bash.sh` | fzf, ripgrep, fd-find, bat, eza, zoxide, direnv, starship, git-delta, lazygit | MesloLGS Nerd Font **Mono**, gnome-terminal font (via gsettings, no sudo) | `~/.bashrc`, `~/.config/bash/{env,aliases,tools,prompt}.sh`, `~/.config/starship.toml`, `~/.local/bin/{bat,fd}` shims |
-| `neovim.sh` | make, clangd, clang-format, shellcheck, yamllint, python3-venv, fzf, fd-find, ripgrep | **Neovim** tarball → `~/.local/opt/nvim-$VERSION` | `~/.config/nvim/` (init.lua, lua/config/*, lua/plugins/*, lazy-lock.json) |
+| `neovim.sh` | make, gcc, clangd, clang-format, shellcheck, yamllint, python3-venv, fzf, fd-find, ripgrep | **Neovim** tarball → `~/.local/opt/nvim-$VERSION`; **tree-sitter** CLI binary → `~/.local/opt/tree-sitter-$TS_VERSION`; tree-sitter-jsonc checkout → `~/.local/opt/grammars/` (both pinned) | `~/.config/nvim/` (init.lua, lua/config/*, lua/plugins/*, queries/jsonc/*) |
 | `opencode.sh` | libnotify-bin (desktop notifications, optional) | **OpenCode 2** via the official installer | `~/.config/opencode/{cli.json,opencode.jsonc}` |
-| `tmux.sh` | tmux, wl-clipboard, fzf | **TPM** + **tmux-resurrect** (git clone / pull) | `~/.tmux.conf`, `~/.config/systemd/user/tmux-persist.service` |
+| `tmux.sh` | tmux, wl-clipboard | **TPM** + **tmux-resurrect** (git clone / pull) | `~/.tmux.conf`, `~/.config/systemd/user/tmux-persist.service` |
 
 ## Toolchain
 
@@ -91,11 +91,32 @@ and scripts need real executables rather than aliases.
 - **No statusline plugin.** The 0.12 default statusline already shows
   diagnostics, LSP progress and `'busy'`; the git branch is added from
   `b:gitsigns_head`.
+- **The tabline is `barbar.nvim`.** Each tab shows two state layers: gitsigns
+  git marks (`+` added, `~` changed, `-` deleted versus HEAD) and the unsaved
+  `●` marker, so "what have I altered?" and "what needs saving?" are both
+  answered at a glance. `bufferline.nvim` shows only unsaved + LSP counts and
+  has been dormant upstream since 2025-01; `mini.tabline` has no git state.
 - **`diffview.nvim` is deliberately absent** (no upstream commits since
   2024-08). Branch review uses `lazygit`, fzf-lua's `git_commits`/`git_bcommits`,
   `gitsigns.diffthis` and Neovim 0.12's built-in `:DiffTool`.
-- **`nvim-treesitter-textobjects` is present as a query provider only.**
-  `mini.ai` reads its `textobjects.scm` files; treesitter core ships none.
+- **The plugin manager is `vim.pack`** (Neovim 0.12's built-in). `packer.nvim`
+  is unmaintained (2024-03) and `lazy.nvim`, while current, is still a plugin;
+  the accepted cost is no lazy-loading (everything loads at startup).
+  `nvim-pack-lock.json` is written and owned by Nvim; the pins live in
+  `neovim.sh`.
+- **`leap.nvim`, `vim-tmux-navigator`, `nvim-treesitter-textobjects` and
+  mini's `surround`/`ai`/`pairs` were dropped as unused** (usage audit). In
+  Nvim, pane movement is now plain `<C-w>hjkl`; `M-hjkl` still moves tmux
+  panes (the `tmux.sh` binding).
+- **Treesitter is `nvim-treesitter` on its `main` branch** (the maintained
+  rewrite for 0.12). The frozen `master` branch is EOL: its query directives
+  crash on 0.12 (`attempt to call method 'range'`) and its queries shadow the
+  runtime's. Parsers install to `~/.local/share/nvim/site/`; upgrade with a
+  plugin pin bump, `:packupdate`, then `:TSUpdate`. The `tree-sitter` CLI is
+  a pinned release binary (Debian's 0.22.6 predates main's >= 0.26.1 floor),
+  and `jsonc` compiles from a pinned local checkout because its grammar's
+  GitLab tarball endpoint is broken; its queries live in
+  `~/.config/nvim/queries/jsonc/` and inherit json's.
 - **`tmux` prefix is `C-Space`**, which costs only readline's unused `set-mark`.
   The default `C-b` would shadow `backward-char` in bash and `<C-b>` in Neovim.
 - **Pane navigation is `M-hjkl`, not `C-hjkl`**, because `C-h` is backspace and
@@ -119,8 +140,10 @@ and scripts need real executables rather than aliases.
   overrides the command.
 - **`python3-venv` is required** for mason's PyPI installer (`ensurepip`);
   without it `basedpyright` fails with an opaque `spawn: python3 failed`.
-- **Plugin versions are pinned in `lazy-lock.json`** (embedded in `neovim.sh`);
-  language servers are pinned by the `ensure_installed` list in `lsp.lua`.
+- **Plugin versions are pinned as commit hashes** in the `vim.pack.add()`
+  manifest in `config/plugins.lua` (embedded in `neovim.sh`). To upgrade: bump
+  the hash, re-run `neovim.sh`, restart Nvim, then `:packupdate` and confirm.
+  Language servers are pinned by the `ensure_installed` list in `lsp.lua`.
 - **OpenCode 2 is installed via `opencode.ai/v2/install`**, *not*
   `opencode.ai/install` (that is the V1 installer and would downgrade/break the
   V2 config). Re-running `opencode.sh` updates to the latest V2 release.
@@ -136,3 +159,8 @@ login and saves them at logout, so a reboot loses nothing:
 
 Snapshots live under `~/.local/share/tmux/resurrect/` (the XDG fallback used
 when `~/.tmux/resurrect` doesn't exist).
+
+## tmux sessions
+
+- `prefix + s` — native session list; `x` kills the selected session/window/pane
+- `prefix + S` — create a new session, prompting for its name

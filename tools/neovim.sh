@@ -208,7 +208,9 @@ o.wildmode = "longest:full,full"
 o.wildoptions = "pum,fuzzy"
 
 -- Diff: 0.12 defaults are already good; add word-level inline and linematch.
-o.diffopt = "internal,filler,closeoff,indent-heuristic,inline:word,linematch:60,algorithm:histogram"
+-- `vertical` keeps every diff (gitsigns diffthis, :diffsplit, :DiffTool)
+-- side-by-side like VSCode; gitsigns derives its split from 'diffopt'.
+o.diffopt = "internal,filler,closeoff,vertical,indent-heuristic,inline:word,linematch:60,algorithm:histogram"
 
 -- Project-local config. 0.12 searches parent directories too; files must be
 -- explicitly trusted with :trust, so this is safe across /opt/github/*.
@@ -296,6 +298,9 @@ vim.pack.add({
 
 -- :Undotree ships as a bundled opt package; load it for the <leader>u map.
 vim.cmd.packadd('nvim.undotree')
+
+-- :DiffTool ships as a bundled opt package; load it for side-by-side diffs.
+vim.cmd.packadd('nvim.difftool')
 
 -- Disable unused runtime plugins.
 vim.g.loaded_gzip = 1
@@ -691,7 +696,7 @@ map('n', '<leader>bP', '<cmd>BufferPin<cr>', { desc = 'Pin/unpin buffer' })
 EOF
 write_file ~/.config/nvim/lua/plugins/git.lua <<'EOF'
 -- plugins/git.lua - gitsigns. No diff-view plugin: lazygit (<leader>gg),
--- gitsigns.diffthis and :DiffTool cover branch review.
+-- gitsigns.diff / diffthis and :DiffTool cover branch review.
 
 require('gitsigns').setup({
   signs = {
@@ -732,6 +737,7 @@ require('gitsigns').setup({
     map('n', '<leader>hR', gs.reset_buffer, 'Reset buffer')
     map('n', '<leader>hu', gs.undo_stage_hunk, 'Undo stage hunk')
     map('n', '<leader>hp', gs.preview_hunk_inline, 'Preview hunk inline')
+    map('n', '<leader>gd', gs.diff, 'Diff file tree (HEAD vs worktree)')
     map('n', '<leader>hd', gs.diffthis, 'Diff against index')
     map('n', '<leader>hD', function() gs.diffthis('~') end, 'Diff against last commit')
     map('n', '<leader>hm', function() gs.diffthis('main') end, 'Diff against main')

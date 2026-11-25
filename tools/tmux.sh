@@ -54,7 +54,7 @@ clone_or_update() {
   fi
 }
 
-apt_install tmux wl-clipboard
+apt_install tmux
 
 # --- plugins (non-apt): TPM + tmux-resurrect ------------------------------
 clone_or_update "$HOME/.tmux/plugins/tpm" https://github.com/tmux-plugins/tpm
@@ -85,9 +85,7 @@ set -g base-index 1               # windows start at 1, not 0
 setw -g pane-base-index 1
 set -g renumber-windows on
 setw -g mode-keys vi
-set -g set-clipboard on
 setw -g automatic-rename on
-set -g copy-command 'wl-copy'      # every copy-pipe* also feeds the Wayland clipboard
 
 # New panes/windows inherit the current directory.
 bind '"' split-window -h -c "#{pane_current_path}"
@@ -114,17 +112,26 @@ bind -r K resize-pane -U 5
 bind -r L resize-pane -R 5
 
 # --- copy mode / clipboard --------------------------------------------------
-# All copy paths (mouse drag-end, double/triple-click, Enter, y below) run
-# copy-pipe*, so the copy-command above routes every one through wl-copy.
+# No clipboard tools involved: every copy lands in a tmux buffer and, via
+# OSC 52, on the desktop clipboard of the terminal emulator (Alacritty
+# accepts OSC 52 copies out of the box, terminal.osc52 = "OnlyCopy").
+# Double/triple click and Enter keep the default copy-selection* commands
+# and follow the same path.
+set -g set-clipboard on           # yanks set the terminal clipboard
+set -g allow-passthrough on       # let panes bypass tmux via ESC Ptmux;...:
+                                  # OpenCode's TUI wraps its OSC 52 clipboard
+                                  # writes that way and tmux silently drops
+                                  # them otherwise (off by default since 3.3)
 bind -T copy-mode-vi v send -X begin-selection
-bind -T copy-mode-vi y send -X copy-pipe-and-cancel                    # yank -> Wayland clipboard
-bind -T copy-mode-vi MouseDragEnd1Pane send -X copy-pipe-and-cancel    # select -> already copied
+bind -T copy-mode-vi y send -X copy-selection-and-cancel               # yank -> clipboard
+bind -T copy-mode-vi MouseDragEnd1Pane send -X copy-selection-and-cancel # select -> already copied
 bind -T copy-mode-vi Escape send -X cancel
 
-# prefix+v: paste the Wayland clipboard with bracketed paste (so vim and
-# shells don't mangle it). Over SSH wl-paste is not on the remote, so the
-# tmux buffer is pasted unchanged as a fallback.
-bind v run-shell 'command -v wl-paste >/dev/null 2>&1 && wl-paste -n | tmux load-buffer -' \; paste-buffer -p
+# prefix+v: paste the last tmux buffer with bracketed paste (so vim and
+# shells don't mangle it). The desktop clipboard is pasted with the
+# terminal's own paste key (Ctrl+Shift+V in Alacritty), which never goes
+# through tmux.
+bind v paste-buffer -p
 
 # --- session list / new session ---------------------------------------------
 # Native tmux session tree (the default `s` binding). Enter switches to the

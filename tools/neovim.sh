@@ -45,8 +45,9 @@ write_file() {
 # 0.10.x, this config needs 0.12+ (vim.lsp.config, 'autocomplete', vim.pack).
 VERSION=0.12.6
 
+# wl-clipboard is only for Neovim's "+ paste reads; yanks go out over OSC 52.
 apt_install make gcc clangd clang-format shellcheck yamllint python3-venv \
-  fzf fd-find ripgrep
+  fzf fd-find ripgrep wl-clipboard
 
 # Replace Debian's older Neovim; mark xclip manual first so a later
 # `apt autoremove` doesn't sweep it.
@@ -216,9 +217,44 @@ o.diffopt = "internal,filler,closeoff,vertical,indent-heuristic,inline:word,line
 -- explicitly trusted with :trust, so this is safe across /opt/github/*.
 o.exrc = true
 
--- Clipboard: explicit "+ yank/paste to the desktop (wl-clipboard is
--- installed). `clipboard` stays unset on purpose: explicit beats surprising.
-vim.g.clipboard = nil
+-- Clipboard: "+ yanks reach the desktop over OSC 52 (works through tmux and
+-- over SSH). "+ paste reads the desktop clipboard with wl-paste/xclip,
+-- because OSC 52 reads do not round-trip through tmux: the read query never
+-- reaches the terminal and the built-in osc52 paste hangs. `clipboard` stays
+-- unset on purpose: explicit beats surprising.
+local function desktop_paste(sel)
+  local cmds = sel == "*" and {
+    { "wl-paste", "--primary", "-n" },
+    { "xclip", "-selection", "primary", "-o" },
+  } or {
+    { "wl-paste", "-n" },
+    { "xclip", "-selection", "clipboard", "-o" },
+  }
+  return function()
+    for _, cmd in ipairs(cmds) do
+      if vim.fn.executable(cmd[1]) == 1 then
+        -- Timeout: a dead Wayland socket would otherwise hang the UI.
+        local out = vim.system(cmd, { text = true, timeout = 2000 }):wait()
+        if out.code == 0 then
+          return vim.split((out.stdout:gsub("\n$", "")), "\n", { plain = true })
+        end
+      end
+    end
+    return {}
+  end
+end
+
+vim.g.clipboard = {
+  name = "osc52+desktop",
+  copy = {
+    ["+"] = require("vim.ui.clipboard.osc52").copy("+"),
+    ["*"] = require("vim.ui.clipboard.osc52").copy("*"),
+  },
+  paste = {
+    ["+"] = desktop_paste("+"),
+    ["*"] = desktop_paste("*"),
+  },
+}
 
 o.mouse = "a"
 o.mousemoveevent = true

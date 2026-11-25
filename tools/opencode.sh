@@ -48,7 +48,7 @@ VERSION=latest
 # --- install/update (non-apt): official installer --------------------------
 # NOTE: opencode.ai/install is the OpenCode 1 installer; the /v2/ endpoint is
 # the OpenCode 2 one (this config is V2). --no-modify-path keeps the installer
-# from touching ~/.bashrc, which is owned by bash.sh and already puts
+# from touching ~/.bashrc, which is owned by terminal.sh and already puts
 # ~/.opencode/bin on PATH.
 install_args=(--no-modify-path)
 [ "$VERSION" != "latest" ] && install_args+=(--version "$VERSION")
